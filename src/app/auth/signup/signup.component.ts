@@ -1,6 +1,7 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import {
   AbstractControl,
+  FormArray,
   FormControl,
   FormGroup,
   FormGroupName,
@@ -23,11 +24,10 @@ function emailIsNotUnique(control: AbstractControl) {
   return of({ notUnique: true });
 }
 
-function confirmPasswordDoseNotMatch(
-  control: AbstractControl,
-  passwordControl: AbstractControl
-) {
-  if (control.value === passwordControl.value) {
+function confirmPasswordDoseNotMatch(control: AbstractControl) {
+  const password = control.get('password')?.value;
+  const confirmPassword = control.get('confirmPassword')?.value;
+  if (confirmPassword === password) {
     return null;
   }
   return { doseNotMatch: true };
@@ -55,43 +55,41 @@ export class SignupComponent implements OnInit {
       validators: [Validators.required, Validators.email],
       asyncValidators: [emailIsNotUnique],
     }),
-    password: new FormControl('', {
-      validators: [
-        Validators.required,
-        Validators.minLength(6),
-        mustContainQuestionMark,
-      ],
+    passwords: new FormGroup(
+      {
+        password: new FormControl('', {
+          validators: [
+            Validators.required,
+            Validators.minLength(6),
+            mustContainQuestionMark,
+          ],
+        }),
+        confirmPassword: new FormControl('', {
+          validators: [Validators.required, Validators.minLength(6)],
+        }),
+      },
+      { validators: [confirmPasswordDoseNotMatch] }
+    ),
+    fullName: new FormGroup({
+      firstName: new FormControl('', { validators: [Validators.required] }),
+      lastName: new FormControl('', { validators: [Validators.required] }),
     }),
-    confirmPassword: new FormControl('', {
-      validators: [Validators.required, Validators.minLength(6)],
+    address: new FormGroup({
+      street: new FormControl('', { validators: [Validators.required] }),
+      number: new FormControl('', { validators: [Validators.required] }),
+      postalCode: new FormControl('', { validators: [Validators.required] }),
+      city: new FormControl('', { validators: [Validators.required] }),
     }),
-    firstName: new FormControl('', { validators: [Validators.required] }),
-    lastName: new FormControl('', { validators: [Validators.required] }),
-    streer: new FormControl('', { validators: [Validators.required] }),
-    number: new FormControl('', { validators: [Validators.required] }),
-    postalCode: new FormControl('', { validators: [Validators.required] }),
-    city: new FormControl('', { validators: [Validators.required] }),
     role: new FormControl<
       'student' | 'teacher' | 'employee' | 'founder' | 'others'
     >('student', { validators: [Validators.required] }),
+    source: new FormArray([
+      new FormControl(false),
+      new FormControl(false),
+      new FormControl(false),
+    ]),
     agree: new FormControl(false, { validators: [Validators.required] }),
   });
-
-  get isEmailInvalid() {
-    return (
-      this.form.controls.email.touched &&
-      this.form.controls.email.dirty &&
-      this.form.controls.email.invalid
-    );
-  }
-
-  get isPasswordInvalid() {
-    return (
-      this.form.controls.password.touched &&
-      this.form.controls.password.dirty &&
-      this.form.controls.password.invalid
-    );
-  }
 
   ngOnInit() {
     const subscription = this.form.valueChanges
@@ -110,8 +108,9 @@ export class SignupComponent implements OnInit {
   }
 
   onSubmit() {
+    if (this.form.invalid) {
+      return;
+    }
     console.log(this.form);
-    const enteredEmail = this.form.value.email;
-    const enteredPassword = this.form.value.password;
   }
 }
