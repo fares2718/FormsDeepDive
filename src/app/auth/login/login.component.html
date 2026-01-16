@@ -1,37 +1,25 @@
-<form #form="ngForm" (ngSubmit)="onSubmit(form)">
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
   <h2>Login</h2>
 
   <div class="control-row">
     <div class="control no-margin">
       <label for="email">Email</label>
-      <input
-        id="email"
-        type="email"
-        name="email"
-        ngModel
-        required
-        email
-        #email="ngModel"
-      />
+      <input id="email" type="email" formControlName="email" />
     </div>
 
     <div class="control no-margin">
       <label for="password">Password</label>
-      <input
-        id="password"
-        type="password"
-        name="password"
-        ngModel
-        required
-        minlength="6"
-        #password="ngModel"
-      />
+      <input id="password" type="password" formControlName="password" />
     </div>
 
     <button class="button">Login</button>
   </div>
 
-  @if((email.touched || password.touched) && form.form.invalid){
-  <p class="control-error">Invalid email or password.</p>
+  @if(isEmailInvalid){
+  <p class="control-error">Invalid email,Please enter valid one</p>
+  } @if(isPasswordInvalid){
+  <p class="control-error">
+    Invalid password,it must be 6 charecters at least & contain a question mark
+  </p>
   }
 </form>

@@ -1,61 +1,67 @@
-import { NgFor } from '@angular/common';
+import { Component } from '@angular/core';
 import {
-  afterNextRender,
-  Component,
-  DestroyRef,
-  inject,
-  viewChild,
-} from '@angular/core';
-import { FormsModule, NgForm } from '@angular/forms';
-import { debounceTime } from 'rxjs';
+  AbstractControl,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+import { of } from 'rxjs';
 
+function mustContainQuestionMark(control: AbstractControl) {
+  if (control.value.includes('?')) {
+    return null;
+  }
+  return { doseNotContainQuestionMark: true };
+}
+
+function isEmailUnique(control: AbstractControl) {
+  if (control.value !== 'test@example.com') {
+    return of(null);
+  }
+  return of({ notUnique: true });
+}
 @Component({
   selector: 'app-login',
   standalone: true,
+  imports: [ReactiveFormsModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
-  imports: [FormsModule],
 })
 export class LoginComponent {
-  private form = viewChild.required<NgForm>('form');
-  private destroyRef = inject(DestroyRef);
+  form = new FormGroup({
+    email: new FormControl('', {
+      validators: [Validators.required, Validators.email],
+      asyncValidators: [isEmailUnique],
+    }),
+    password: new FormControl('', {
+      validators: [
+        Validators.required,
+        Validators.minLength(6),
+        mustContainQuestionMark,
+      ],
+    }),
+  });
 
-  constructor() {
-    const savedForm = window.localStorage.getItem('log-in-form');
-
-    if (savedForm) {
-      const loadedFormData = JSON.parse(savedForm);
-      const savedEmail = loadedFormData.email;
-      setTimeout(() => {
-        this.form().setValue({ email: savedEmail, password: '' });
-      }, 1);
-    }
-
-    afterNextRender(() => {
-      const subscription = this.form()
-        .valueChanges?.pipe(debounceTime(500))
-        .subscribe({
-          next: (value) => {
-            window.localStorage.setItem(
-              'log-in-form',
-              JSON.stringify({ email: value.email })
-            );
-          },
-        });
-
-      this.destroyRef.onDestroy(() => {
-        subscription?.unsubscribe();
-      });
-    });
+  get isEmailInvalid() {
+    return (
+      this.form.controls.email.touched &&
+      this.form.controls.email.dirty &&
+      this.form.controls.email.invalid
+    );
   }
 
-  onSubmit(formData: NgForm) {
-    if (formData.form.invalid) {
-      return;
-    }
-    const enterdEmail = formData.form.value.email;
-    const enterdPassword = formData.form.value.password;
-    console.log(enterdEmail, enterdPassword);
-    formData.form.reset();
+  get isPasswordInvalid() {
+    return (
+      this.form.controls.password.touched &&
+      this.form.controls.password.dirty &&
+      this.form.controls.password.invalid
+    );
+  }
+
+  onSubmit() {
+    console.log(this.form);
+    const enteredEmail = this.form.value.email;
+    const enteredPassword = this.form.value.password;
   }
 }
